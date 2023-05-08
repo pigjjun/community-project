@@ -1,7 +1,7 @@
 import React, { useState, useContext } from "react";
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
-import { ref, uploadBytes } from "firebase/storage";
+import { ref, uploadBytes, getStorage, getDownloadURL } from "firebase/storage";
 import { db, app } from "../firebase.config";
 import { collection, addDoc } from "firebase/firestore";
 import { AuthContext } from "../ContextAPI/AuthContext";
@@ -27,16 +27,17 @@ export default function Write() {
       voteLeftCount,
       voteRight,
       voteRightCount,
-      voteNeutral,
+      voteNeutralCount,
+      voteTotal,
     } = data;
 
     // Firebase Storage에 파일 업로드
-    let imageUrl = "";
-    if (file) {
-      const storageRef = ref(app, `images/${file[0].name}`);
-      await uploadBytes(storageRef, file[0]).then(async (snapshot) => {
-        imageUrl = await snapshot.ref.getDownloadURL();
-      });
+    let imageUrl = null;
+    if (file && file.length > 0) {
+      // 파일 객체가 존재하는 경우에만 처리
+      const storageRef = ref(getStorage(app), `images/${file[0].name}`);
+      await uploadBytes(storageRef, file[0]);
+      imageUrl = await getDownloadURL(storageRef);
     }
 
     // Firebase Firestore에 데이터 저장
@@ -51,7 +52,8 @@ export default function Write() {
       voteLeftCount: 0,
       voteRight,
       voteRightCount: 0,
-      voteNeutral: 0,
+      voteNeutralCount: 0,
+      voteTotal: 0,
     };
     await addDoc(collection(db, "posts"), postData);
 
@@ -59,7 +61,7 @@ export default function Write() {
     navigate("/");
   };
   return (
-    <div className="min-h-screen min-w-max flex justify-center bg-white-theme-001 text-black-theme-004 dark:bg-black-theme-004 dark:text-white-theme-002 transition-all duration-500">
+    <div className="min-h-screen min-w-max pt-88px flex justify-center bg-white-theme-001 text-black-theme-004 dark:bg-black-theme-004 dark:text-white-theme-002 transition-all duration-500">
       <h1 className="text-3xl font-bold mb-6">새 게시글 쓰기</h1>
       <form
         className="max-w-lg w-full p-8 bg-white shadow-md rounded-lg"
@@ -163,14 +165,7 @@ export default function Write() {
           <label htmlFor="file" className="block text-gray-700 font-bold mb-2">
             첨부파일:
           </label>
-          <input
-            type="file"
-            id="file"
-            onChange={(event) => {
-              setFileUrl(URL.createObjectURL(event.target.files[0]));
-              register("file");
-            }}
-          />
+          <input type="file" id="file" {...register("file")} />
         </div>
         {fileUrl && (
           <div className="mb-4">

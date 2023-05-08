@@ -1,6 +1,6 @@
 import React, { useContext, useState, useEffect } from "react";
 import { AuthContext } from "../ContextAPI/AuthContext";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import { getAuth, signOut } from "firebase/auth";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "../firebase.config";
@@ -8,41 +8,42 @@ import { db } from "../firebase.config";
 export default function UserProfile() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
+  const { userId } = useParams();
   const [userInfo, setUserInfo] = useState(null);
   const [userPosts, setUserPosts] = useState([]);
 
   useEffect(() => {
     const getUserInfo = async () => {
-      const q = query(
-        collection(db, "users"),
-        where("email", "==", user.email)
-      );
+      const q = query(collection(db, "users"), where("userId", "==", userId));
       const querySnapshot = await getDocs(q);
       if (!querySnapshot.empty) {
         const userInfo = querySnapshot.docs[0].data();
+        userInfo.uid = querySnapshot.docs[0].id; // Add uid to userInfo object
         setUserInfo(userInfo);
       }
     };
     getUserInfo();
-  }, [user]);
+  }, [userId]);
 
   useEffect(() => {
     const getUserPosts = async () => {
-      const q = query(
-        collection(db, "posts"),
-        where("createdBy", "==", user.uid)
-      );
-      const querySnapshot = await getDocs(q);
-      const posts = [];
-      querySnapshot.forEach((doc) => {
-        const post = doc.data();
-        post.id = doc.id;
-        posts.push(post);
-      });
-      setUserPosts(posts);
+      if (userInfo) {
+        const q = query(
+          collection(db, "posts"),
+          where("createdBy", "==", userInfo.uid) // Use userInfo.uid here
+        );
+        const querySnapshot = await getDocs(q);
+        const posts = [];
+        querySnapshot.forEach((doc) => {
+          const post = doc.data();
+          post.id = doc.id;
+          posts.push(post);
+        });
+        setUserPosts(posts);
+      }
     };
     getUserPosts();
-  }, [user]);
+  }, [userInfo]);
 
   const logout = async () => {
     const auth = getAuth();
@@ -55,11 +56,13 @@ export default function UserProfile() {
   };
 
   return (
-    <div className="min-h-screen min-w-max flex justify-center bg-white-theme-001 text-black-theme-004 dark:bg-black-theme-004 dark:text-white-theme-002 transition-all duration-500">
+    <div className="min-h-screen min-w-max pt-88px flex justify-center bg-white-theme-001 text-black-theme-004 dark:bg-black-theme-004 dark:text-white-theme-002 transition-all duration-500">
       <h1 className="text-3xl font-bold mb-6">프로필</h1>
-      <Link to="/user/profile/edit">
-        <button>수정하기</button>
-      </Link>
+      {user && user.email === userInfo?.email && (
+        <Link to="/user/profile/edit">
+          <button>수정하기</button>
+        </Link>
+      )}
       <div className="max-w-md w-full p-8 bg-white shadow-md rounded-lg">
         <div className="mb-4">
           <label htmlFor="name" className="block text-gray-700 font-bold mb-2">
@@ -114,12 +117,14 @@ export default function UserProfile() {
         ) : (
           <p>작성한 게시물이 없습니다.</p>
         )}
-        <button
-          className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600"
-          onClick={logout}
-        >
-          로그아웃
-        </button>
+        {user && user.email === userInfo?.email && (
+          <button
+            className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600"
+            onClick={logout}
+          >
+            로그아웃
+          </button>
+        )}
       </div>
     </div>
   );

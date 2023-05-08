@@ -15,6 +15,8 @@ import { db } from "../firebase.config";
 export default function UserProfileEdit() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
+  const [userId, setUserId] = useState("");
+
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [birthday, setBirthday] = useState("");
@@ -22,7 +24,9 @@ export default function UserProfileEdit() {
   const [introduction, setIntroduction] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
-
+  const [userIdDisabled, setUserIdDisabled] = useState(false); // userId 수정칸의 disabled 상태를 관리하는 state 추가
+  const [originalUserId, setOriginalUserId] = useState(""); // 기존 userId 값을 저장할 state 추가
+  const [userIdUpdatedAt, setUserIdUpdatedAt] = useState(null); // userIdUpdatedAt 변수 선언 및 초기값 설정
   useEffect(() => {
     const getUserInfo = async () => {
       const q = query(
@@ -34,13 +38,27 @@ export default function UserProfileEdit() {
         const userInfo = querySnapshot.docs[0].data();
         setName(userInfo.name);
         setEmail(userInfo.email);
+        setUserId(userInfo.userId);
+        setOriginalUserId(userInfo.userId);
         setBirthday(userInfo.birthday);
         setAge(userInfo.age);
         setIntroduction(userInfo.introduction);
+        setUserIdUpdatedAt(userInfo.userIdUpdatedAt); // userIdUpdatedAt 값 설정
       }
     };
     getUserInfo();
-  }, [user]);
+    const checkUserIdDisabled = () => {
+      const now = new Date();
+      const updatedAt = new Date(userIdUpdatedAt);
+      const diffInDays = (now - updatedAt) / (1000 * 3600 * 24);
+      if (diffInDays < 10) {
+        setUserIdDisabled(true);
+      }
+    };
+    if (userIdUpdatedAt) {
+      checkUserIdDisabled();
+    }
+  }, [user, userIdUpdatedAt]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -49,13 +67,19 @@ export default function UserProfileEdit() {
     const auth = getAuth();
     try {
       await updateProfile(auth.currentUser, { displayName: name });
-      await updateDoc(doc(db, "users", user.uid), {
+      const dataToUpdate = {
         name,
         email,
         birthday,
         age,
         introduction,
-      });
+      };
+      if (userId !== originalUserId) {
+        // userId가 변경된 경우에만 userIdUpdatedAt 저장
+        dataToUpdate.userId = userId;
+        dataToUpdate.userIdUpdatedAt = new Date().toISOString(); // 현재 시간을 ISO 형식으로 저장
+      }
+      await updateDoc(doc(db, "users", user.uid), dataToUpdate);
       alert("프로필이 성공적으로 업데이트되었습니다!");
       navigate("/user/profile");
     } catch (error) {
@@ -83,9 +107,55 @@ export default function UserProfileEdit() {
   const handleIntroductionChange = (e) => {
     setIntroduction(e.target.value);
   };
+  async function handleUserIdDuplicateCheck() {
+    if (!validateUserId(userId)) {
+      return;
+    }
+    const q = query(collection(db, "users"), where("userId", "==", userId));
+    const querySnapshot = await getDocs(q);
+    if (querySnapshot.size > 0) {
+      alert("이미 사용 중인 아이디입니다.");
+    } else {
+      alert("사용 가능한 아이디입니다.");
+    }
+  }
+
+  function validateUserId(userId) {
+    const isKorean = /[ㄱ-ㅎㅏ-ㅣ가-힣]/;
+    const isEnglish = /[a-zA-Z]/;
+
+    if (isKorean.test(userId)) {
+      // Validate Korean user ID
+      if (userId.length < 2 || /^[ㄱ-ㅎㅏ-ㅣ]+$/.test(userId)) {
+        alert(
+          "아이디는 자음 또는 모음만으로는 사용할 수 없으며, 2자 이상이어야 합니다."
+        );
+        return false;
+      }
+    } else if (isEnglish.test(userId)) {
+      // Validate English user ID
+      if (userId.length < 4) {
+        alert("아이디는 영문자로 4자 이상이어야 합니다.");
+        return false;
+      }
+    } else {
+      // User ID is neither Korean nor English
+      alert("아이디는 영문자 또는 한글로 입력해야 합니다.");
+      return false;
+    }
+
+    const userIdRegex = /^[a-zA-Z0-9ㄱ-ㅎㅏ-ㅣ가-힣_-]{2,16}$/;
+    if (!userIdRegex.test(userId)) {
+      alert(
+        "아이디는 영문자, 숫자, 특수문자(_,-)로 2자 이상 16자 이하여야 합니다."
+      );
+      return false;
+    }
+    return true;
+  }
 
   return (
-    <div className="min-h-screen min-w-max flex justify-center bg-white-theme-001 text-black-theme-004 dark:bg-black-theme-004 dark:text-white-theme-002 transition-all duration-500">
+    <div className="min-h-screen min-w-max pt-88px flex justify-center bg-white-theme-001 text-black-theme-004 dark:bg-black-theme-004 dark:text-white-theme-002 transition-all duration-500">
       <h1 className="text-3xl font-bold mb-6">프로필 수정하기</h1>
       <Link to="/user/profile">
         <button>돌아가기</button>
@@ -96,6 +166,32 @@ export default function UserProfileEdit() {
       >
         {errorMessage && <p className="text-red-500">{errorMessage}</p>}
         {successMessage && <p className="text-green-500">{successMessage}</p>}
+        <div className="mb-4">
+          <label
+            htmlFor="userId"
+            className="block text-gray-700 font-bold mb-2"
+          >
+            아이디:
+          </label>
+          <input
+            type="text"
+            id="userId"
+            name="userId"
+            value={userId}
+            onChange={(e) => setUserId(e.target.value)}
+            required
+            className="block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+            disabled={userIdDisabled}
+          />
+        </div>
+        <button
+          type="button"
+          onClick={handleUserIdDuplicateCheck}
+          className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline ml-4"
+        >
+          중복확인
+        </button>
+
         <div className="mb-4">
           <label htmlFor="name" className="block text-gray-700 font-bold mb-2">
             이름:

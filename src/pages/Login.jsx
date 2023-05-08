@@ -54,7 +54,7 @@ function Login() {
     }
   }
   return (
-    <div className="min-h-screen min-w-max flex justify-center bg-white-theme-001 text-black-theme-004 dark:bg-black-theme-004 dark:text-white-theme-002 transition-all duration-500">
+    <div className="min-h-screen min-w-max pt-88px flex justify-center bg-white-theme-001 text-black-theme-004 dark:bg-black-theme-004 dark:text-white-theme-002 transition-all duration-500">
       <form
         className="max-w-sm w-full p-8 bg-white rounded-lg"
         onSubmit={handleSubmit}

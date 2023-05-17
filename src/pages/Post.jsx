@@ -359,14 +359,14 @@ export default function Post() {
       {post.imageUrls &&
         post.imageUrls.map((url, index) => (
           <div key={index} className="my-6 flex justify-center">
-            <img src={url} alt={`Post ${index}`} className="max-w-2/5" />
+            <img src={url} alt={`Post ${index}`} className="max-w-md" />
           </div>
         ))}
       {/* 동영상 */}
       {post.videoUrls &&
         post.videoUrls.map((url, index) => (
           <div key={index} className="my-6 flex justify-center">
-            <video controls src={url} className="max-w-2/5" />
+            <video controls src={url} className="max-w-md" />
           </div>
         ))}
       {/* 찬반버튼 */}

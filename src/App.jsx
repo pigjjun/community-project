@@ -21,7 +21,6 @@ function App() {
         <Route path="/user/reg" element={<Register />} />
         <Route path="/user/profile/:userId" element={<UserProfile />} />
         <Route path="/user/profile/edit" element={<UserProfileEdit />} />
-        <Route path="/main/post" element={<Post />} />
         <Route path="/main/write" element={<Write />} />
         <Route path="/main/post/:id" element={<Post />} />
         <Route path="/main/search" element={<Search />} />

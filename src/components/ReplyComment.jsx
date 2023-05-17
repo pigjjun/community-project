@@ -42,8 +42,8 @@ const ReplyComment = ({
             <div className="flex items-center mb-2">
               <img
                 src={
-                  comment && comment.photoURL
-                    ? comment.photoURL
+                  replyComment && replyComment.photoURL
+                    ? replyComment.photoURL
                     : "https://firebasestorage.googleapis.com/v0/b/pigjjun-sub.appspot.com/o/profilePictures%2FUser-Profile-Icon.svg?alt=media"
                 }
                 alt={replyComment.createdBy}

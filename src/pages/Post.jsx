@@ -1,30 +1,41 @@
 import React, { useEffect, useState, useContext } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { db } from "../firebase.config";
 import {
   doc,
   getDoc,
   deleteDoc,
   updateDoc,
-  increment,
   collection,
   query,
   onSnapshot,
   addDoc,
   orderBy,
+  getDocs,
 } from "firebase/firestore";
 import { AuthContext } from "../ContextAPI/AuthContext";
 import { LanguageContext } from "../ContextAPI/LanguageContext";
+import DeletePostButton from "../components/DeletePostButton";
+import VoteButtons from "../components/VoteButton";
+import CommentForm from "../components/CommentForm";
+import CommentArea from "../components/CommentArea";
 
 export default function Post() {
   const { id } = useParams();
-  const navigate = useNavigate();
   const { userData } = useContext(AuthContext);
   const [post, setPost] = useState(null);
   const [postUserId, setPostUserId] = useState("");
   const [comments, setComments] = useState([]);
   const { isEnglish } = useContext(LanguageContext);
   const [editedComment, setEditedComment] = useState({ id: "", content: "" });
+  const [postUserPhotoURL, setPostUserPhotoURL] = useState("");
+  const [replyComments, setReplyComments] = useState({});
+  const [editedReply, setEditedReply] = useState({
+    commentId: "",
+    replyId: "",
+    content: "",
+  });
+  const [replyOpen, setReplyOpen] = useState(false);
 
   useEffect(() => {
     const getPost = async () => {
@@ -36,12 +47,13 @@ export default function Post() {
         const postUserDoc = await getDoc(postUserRef);
         if (postUserDoc.exists()) {
           setPostUserId(postUserDoc.data().userId);
+          setPostUserPhotoURL(postUserDoc.data().photoURL);
         }
       }
     };
     getPost();
 
-    // 댓글을 가져오기 위한 실시간 쿼리를 추가합니다.
+    // 댓글 쿼리 //
     const commentsRef = collection(db, "posts", id, "comments");
     const q = query(commentsRef, orderBy("createdAt"));
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
@@ -52,43 +64,15 @@ export default function Post() {
       setComments(commentsData);
     });
 
-    // useEffect 내에서 unsubscribe 함수를 반환합니다.
     return () => unsubscribe();
   }, [id]);
 
-  const handleDeleteClick = async () => {
-    const deleteMessage = isEnglish
-      ? "Are you sure you want to delete this post?"
-      : "정말 삭제하시겠습니까?";
-    if (window.confirm(deleteMessage)) {
-      try {
-        await deleteDoc(doc(db, "posts", id));
-        navigate("/");
-      } catch (error) {
-        console.error(error);
-      }
-    }
+  // 투표 업데이트 //
+  const handleVoteUpdate = (updatedPost) => {
+    setPost(updatedPost);
   };
 
-  const handleVoteClick = async (field) => {
-    try {
-      const postRef = doc(db, "posts", id);
-      await updateDoc(postRef, {
-        [field]: increment(1),
-        voteTotal: increment(1),
-      });
-      setPost((prevPost) => {
-        return {
-          ...prevPost,
-          [field]: prevPost[field] + 1,
-          voteTotal: prevPost.voteTotal + 1,
-        };
-      });
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
+  // 댓글 작성 //
   const handleCommentSubmit = async (e) => {
     e.preventDefault();
     const form = e.target;
@@ -101,6 +85,8 @@ export default function Post() {
         content,
         createdBy: userData.userId,
         createdAt: new Date(),
+        photoURL: userData.photoURL,
+        likes: [],
       };
       await addDoc(collection(db, "posts", id, "comments"), newComment);
       form.reset();
@@ -109,46 +95,252 @@ export default function Post() {
     }
   };
 
+  // 댓글 수정창 열기 //
   const handleEditClick = (comment) => {
     setEditedComment({ id: comment.id, content: comment.content });
   };
 
+  // 댓글 수정 //
   const handleCommentUpdate = async (e) => {
     e.preventDefault();
+    const updateConfirmMessage = isEnglish
+      ? "Are you sure you want to update this comment?"
+      : "댓글을 수정하시겠습니까?";
+    if (window.confirm(updateConfirmMessage)) {
+      try {
+        const commentRef = doc(db, "posts", id, "comments", editedComment.id);
+        await updateDoc(commentRef, { content: editedComment.content });
+        setEditedComment({ id: "", content: "" });
+      } catch (error) {
+        console.error(error);
+      }
+    }
+  };
+
+  // 댓글 삭제 //
+  const handleDeleteComment = async (commentId) => {
+    const deleteCommentMessage = isEnglish
+      ? "Are you sure you want to delete this comment?"
+      : "댓글을 삭제하시겠습니까?";
+
+    if (window.confirm(deleteCommentMessage)) {
+      try {
+        const repliesSnapshot = await getDocs(
+          collection(db, "posts", id, "comments", commentId, "replies")
+        );
+
+        const deletePromises = repliesSnapshot.docs.map((replyDoc) =>
+          deleteDoc(replyDoc.ref)
+        );
+
+        await Promise.all(deletePromises);
+
+        await deleteDoc(doc(db, "posts", id, "comments", commentId));
+      } catch (error) {
+        console.error(error);
+      }
+    }
+  };
+
+  // 댓글 좋아요 //
+  const handleLikeClick = async (commentId) => {
+    const commentRef = doc(db, "posts", id, "comments", commentId);
+    const commentSnap = await getDoc(commentRef);
+    const commentData = commentSnap.data();
+    const userId = userData.userId;
+
+    let newLikes;
+    if (commentData.likes.includes(userId)) {
+      // 이미 좋아요를 눌렀다면
+      newLikes = commentData.likes.filter((id) => id !== userId); // 좋아요 취소
+    } else {
+      // 좋아요를 누르지 않았다면
+      newLikes = [...commentData.likes, userId]; // 좋아요 추가
+    }
+
+    await updateDoc(commentRef, { likes: newLikes });
+
+    const likeButton = document.getElementById(`likeButton_${commentId}`);
+    if (likeButton) {
+      if (newLikes.includes(userId)) {
+        likeButton.classList.add("bg-button-red-005");
+      } else {
+        likeButton.classList.remove("bg-button-red-005");
+      }
+    }
+  };
+
+  // 대댓글 //
+  useEffect(() => {
+    comments.forEach((comment) => {
+      const replyCommentsRef = collection(
+        db,
+        "posts",
+        id,
+        "comments",
+        comment.id,
+        "replies"
+      );
+      const q = query(replyCommentsRef, orderBy("createdAt"));
+      const unsubscribe = onSnapshot(q, (querySnapshot) => {
+        const replyCommentsData = [];
+        querySnapshot.forEach((doc) => {
+          replyCommentsData.push({ id: doc.id, ...doc.data() });
+        });
+        setReplyComments((prev) => ({
+          ...prev,
+          [comment.id]: replyCommentsData,
+        }));
+      });
+
+      return () => unsubscribe();
+    });
+  }, [comments]);
+
+  // 대댓글 작성 //
+  const handleReplySubmit = async (e, commentId) => {
+    e.preventDefault();
+    const form = e.target;
+    const content = form.content.value;
+    if (!content) {
+      return;
+    }
     try {
-      const commentRef = doc(db, "posts", id, "comments", editedComment.id);
-      await updateDoc(commentRef, { content: editedComment.content });
-      setEditedComment({ id: "", content: "" });
+      const newComment = {
+        content,
+        createdBy: userData.userId,
+        createdAt: new Date(),
+        photoURL: userData.photoURL,
+        likes: [],
+      };
+      await addDoc(
+        collection(db, "posts", id, "comments", commentId, "replies"),
+        newComment
+      );
+      form.reset();
     } catch (error) {
       console.error(error);
+    }
+    setReplyOpen(false);
+  };
+
+  const handleReplEditClick = (commentId, reply) => {
+    setEditedReply({ commentId, replyId: reply.id, content: reply.content });
+  };
+
+  // 대댓글 수정 //
+  const handleReplyUpdate = async (e) => {
+    e.preventDefault();
+    const updateConfirmMessage = isEnglish
+      ? "Are you sure you want to update this reply?"
+      : "대댓글을 수정하시겠습니까?";
+    if (window.confirm(updateConfirmMessage)) {
+      try {
+        const replyRef = doc(
+          db,
+          "posts",
+          id,
+          "comments",
+          editedReply.commentId,
+          "replies",
+          editedReply.replyId
+        );
+        await updateDoc(replyRef, { content: editedReply.content });
+        setEditedReply({ commentId: "", replyId: "", content: "" });
+      } catch (error) {
+        console.error(error);
+      }
+    }
+  };
+
+  // 대댓글 삭제 //
+  const handleDeleteReply = async (commentId, replyId) => {
+    const deleteReplyMessage = isEnglish
+      ? "Are you sure you want to delete this reply?"
+      : "대댓글을 삭제하시겠습니까?";
+    if (window.confirm(deleteReplyMessage)) {
+      try {
+        await deleteDoc(
+          doc(db, "posts", id, "comments", commentId, "replies", replyId)
+        );
+      } catch (error) {
+        console.error(error);
+      }
+    }
+  };
+
+  // 대댓글 좋아요 //
+  const handleReplyLikeClick = async (commentId, replyCommentId) => {
+    const replyCommentRef = doc(
+      db,
+      "posts",
+      id,
+      "comments",
+      commentId,
+      "replies",
+      replyCommentId
+    );
+    const replyCommentSnap = await getDoc(replyCommentRef);
+    const replyCommentData = replyCommentSnap.data();
+    const userId = userData.userId;
+
+    let newLikes;
+    if (replyCommentData.likes.includes(userId)) {
+      // 이미 좋아요를 눌렀다면
+      newLikes = replyCommentData.likes.filter((id) => id !== userId); // 좋아요 취소
+    } else {
+      // 좋아요를 누르지 않았다면
+      newLikes = [...replyCommentData.likes, userId]; // 좋아요 추가
+    }
+
+    await updateDoc(replyCommentRef, { likes: newLikes });
+
+    const likeButton = document.getElementById(`likeButton_${replyCommentId}`);
+    if (likeButton) {
+      if (newLikes.includes(userId)) {
+        likeButton.classList.add("bg-button-red-005");
+      } else {
+        likeButton.classList.remove("bg-button-red-005");
+      }
     }
   };
 
   if (!post) {
-    return <div>Loading...</div>;
+    return <div>{isEnglish ? "Loading..." : "로딩 중..."}</div>;
   }
 
   return (
-    <div className="px-4 pb-4 pt-92px min-h-screen bg-white-theme-001 text-black-theme-004 dark:bg-black-theme-004 dark:text-white-theme-002 transition-all duration-500">
+    <div className="px-4 pb-4 pt-100px min-h-screen bg-white-theme-001 text-black-theme-004 dark:bg-black-theme-004 dark:text-white-theme-002 transition-all duration-500">
       {/* 삭제버튼(작성자일때) */}
       <div className="text-sm text-right">
-        {userData && userData.userId === postUserId && (
-          <button
-            className="border rounded-lg text-white-theme-007 dark:text-black-theme-002 px-1 py-1  transition-all duration-500"
-            onClick={handleDeleteClick}
-          >
-            {isEnglish ? "Delete" : "글 삭제하기"}
-          </button>
-        )}{" "}
+        <DeletePostButton
+          postUserId={postUserId}
+          id={id}
+          isEnglish={isEnglish}
+          currentUser={userData}
+        />
       </div>
       {/* 제목, 작성자 */}
       <div className="flex justify-between mb-2 items-center">
         <span className="text-2xl font-bold text-black-theme-004 dark:text-white-theme-001 transition-all duration-500">
           {post.title}
         </span>
-        <span className="text-sm border-b-2 text-button-neutral-004 dark:text-button-neutral-002 place-self-center transition-all duration-500">
-          <Link to={`/user/profile/${postUserId}`}>{postUserId}</Link>
-        </span>
+        <Link to={`/user/profile/${postUserId}`}>
+          <div className="flex items-center">
+            <img
+              src={
+                postUserPhotoURL
+                  ? postUserPhotoURL
+                  : "https://firebasestorage.googleapis.com/v0/b/pigjjun-sub.appspot.com/o/profilePictures%2FUser-Profile-Icon.svg?alt=media"
+              }
+              alt={postUserId}
+              className="w-4 h-4 rounded-full mr-1"
+            />
+            <span className="text-sm border-b-2 text-button-neutral-004 dark:text-button-neutral-002 place-self-center transition-all duration-500">
+              {postUserId}
+            </span>
+          </div>
+        </Link>
       </div>
       {/* 작성일, 투표수 */}
       <div className="flex justify-between pb-4 items-center border-b-8 border-white-theme-003 dark:border-black-theme-003 border-dashed transition-all duration-500">
@@ -162,49 +354,29 @@ export default function Post() {
         </span>
       </div>
       {/* 본문 */}
-      <p className="text-left my-8">{post.content}</p>
+      <p className="text-left my-8 whitespace-pre-wrap">{post.content}</p>
       {/* 이미지 */}
-      {post.imageUrl && (
-        <div className="my-6 flex justify-center">
-          <img src={post.imageUrl} alt="Post" className="w-2/5" />
-        </div>
-      )}
+      {post.imageUrls &&
+        post.imageUrls.map((url, index) => (
+          <div key={index} className="my-6 flex justify-center">
+            <img src={url} alt={`Post ${index}`} className="max-w-2/5" />
+          </div>
+        ))}
+      {/* 동영상 */}
+      {post.videoUrls &&
+        post.videoUrls.map((url, index) => (
+          <div key={index} className="my-6 flex justify-center">
+            <video controls src={url} className="max-w-2/5" />
+          </div>
+        ))}
       {/* 찬반버튼 */}
-      <div className="flex min-h-max justify-between pt-6 mb-40">
-        <button
-          className="min-w-max py-2 px-2 rounded-l-xl text-black-theme-005 dark:text-white-theme-000 bg-button-red-003 dark:bg-button-red-004 hover:bg-button-red-004 dark:hover:bg-button-red-005 hover:scale-105 transition-all duration-250"
-          style={{
-            width: `${
-              ((post.voteLeftCount + 1) / (post.voteTotal + 1)) * 100
-            }%`,
-          }}
-          onClick={() => handleVoteClick("voteLeftCount")}
-        >
-          {post.voteLeft} {post.voteLeftCount}
-        </button>
-        <button
-          className="min-w-max py-2 px-2 text-black-theme-005 dark:text-white-theme-000 bg-button-neutral-003 dark:bg-button-neutral-004 hover:bg-button-neutral-004 dark:hover:bg-button-neutral-005 hover:scale-105 transition-all duration-250"
-          style={{
-            width: `${
-              ((post.voteNeutralCount + 1) / (post.voteTotal + 1)) * 100
-            }%`,
-          }}
-          onClick={() => handleVoteClick("voteNeutralCount")}
-        >
-          {post.voteNeutralCount} 중립
-        </button>
-        <button
-          className="min-w-max py-2 px-2 rounded-r-xl text-black-theme-005 dark:text-white-theme-000 bg-button-blue-003 dark:bg-button-blue-004 hover:bg-button-blue-004 dark:hover:bg-button-blue-005 hover:scale-105 transition-all duration-250"
-          style={{
-            width: `${
-              ((post.voteRightCount + 1) / (post.voteTotal + 1)) * 100
-            }%`,
-          }}
-          onClick={() => handleVoteClick("voteRightCount")}
-        >
-          {post.voteRightCount} {post.voteRight}
-        </button>
-      </div>
+      {
+        <VoteButtons
+          post={post}
+          isEnglish={isEnglish}
+          handleVoteUpdate={handleVoteUpdate}
+        />
+      }
 
       {/* 댓글 부분 */}
       <div className="border-t-2 border-white-theme-003 dark:border-black-theme-003 border-solid transition-all duration-500">
@@ -214,95 +386,33 @@ export default function Post() {
             : `댓글 ${comments.length} 개`}
         </p>
         {comments.map((comment) => (
-          <div
+          <CommentArea
             key={comment.id}
-            className="border-b-2 border-white-theme-006 dark:border-black-theme-002 border-dotted mb-4 transition-all duration-500"
-          >
-            <div className="flex justify-between">
-              <span className="text-md border-b-2 mb-2 text-button-neutral-004 dark:text-button-neutral-002 place-self-center transition-all duration-500">
-                <Link to={`/user/profile/${comment.createdBy}`}>
-                  {comment.createdBy}
-                </Link>
-              </span>
-              <span className="text-right text-black-theme-005 dark:text-black-theme-000 transition-all duration-500">
-                {isEnglish
-                  ? `${comment.createdAt.toDate().toLocaleString("en-GB")}`
-                  : `${comment.createdAt.toDate().toLocaleString("ko-KR")}`}
-              </span>
-            </div>
-            <p className="text-left mb-4 text-black-theme-005 dark:text-black-theme-000 transition-all duration-500">
-              {comment.content}
-            </p>
-            {userData && userData.userId === comment.createdBy && (
-              <div className="text-right">
-                <button
-                  className="text-sm px-1 py-1 mb-2 mr-1 border rounded-lg text-white-theme-007 dark:text-black-theme-002 transition-all duration-500"
-                  onClick={async () => {
-                    try {
-                      await deleteDoc(
-                        doc(db, "posts", id, "comments", comment.id)
-                      );
-                    } catch (error) {
-                      console.error(error);
-                    }
-                  }}
-                >
-                  {isEnglish ? "Delete" : "삭제하기"}
-                </button>
-                <button
-                  className="text-sm px-1 py-1 mb-2 border rounded-lg text-white-theme-007 dark:text-black-theme-002 transition-all duration-500"
-                  onClick={() => handleEditClick(comment)}
-                >
-                  {isEnglish ? "Edit" : "수정하기"}
-                </button>
-              </div>
-            )}
-          </div>
+            comment={comment}
+            handleDeleteComment={handleDeleteComment}
+            handleEditClick={handleEditClick}
+            handleCommentUpdate={handleCommentUpdate}
+            handleLikeClick={handleLikeClick}
+            userData={userData}
+            editedComment={editedComment}
+            setEditedComment={setEditedComment}
+            isEnglish={isEnglish}
+            handleReplySubmit={handleReplySubmit}
+            handleReplyEditClick={handleReplEditClick}
+            handleReplyUpdate={handleReplyUpdate}
+            handleDeleteReply={handleDeleteReply}
+            handleReplyLikeClick={handleReplyLikeClick}
+            editedReply={editedReply}
+            setEditedReply={setEditedReply}
+            replyComments={replyComments}
+            setReplyOpen={setReplyOpen}
+            replyOpen={replyOpen}
+          />
         ))}
       </div>
       {/* 댓글 작성 폼 */}
       {!editedComment.id && userData && (
-        <form onSubmit={handleCommentSubmit}>
-          <div className="flex">
-            <label htmlFor="content" className="block mb-2"></label>
-            <textarea
-              name="content"
-              id="content"
-              rows="2"
-              className="w-full px-2 py-1 rounded-l-lg text-black-theme-005 border-r-0 border border-black-theme-001"
-            ></textarea>
-            <button
-              type="submit"
-              className="min-w-max rounded-r-lg max-h-max py-1 px-2 text-black-theme-005 bg-button-neutral-003 dark:text-white-theme-000 dark:bg-button-neutral-004 border-l-0 border border-black-theme-001 transition-all duration-500"
-            >
-              {isEnglish ? "Add" : "작성"}
-            </button>
-          </div>
-        </form>
-      )}
-      {/* 댓글 수정 폼 */}
-      {editedComment.id && (
-        <form onSubmit={handleCommentUpdate}>
-          <div className="flex">
-            <label htmlFor="editContent" className="block mb-2"></label>
-            <textarea
-              name="editContent"
-              id="editContent"
-              rows="2"
-              className="w-full px-2 py-1 rounded-l-lg text-black-theme-005 border-r-0 border border-black-theme-001"
-              value={editedComment.content}
-              onChange={(e) =>
-                setEditedComment({ ...editedComment, content: e.target.value })
-              }
-            ></textarea>
-            <button
-              type="submit"
-              className="min-w-max rounded-r-lg max-h-max py-1 px-2 text-black-theme-005 bg-button-neutral-003 dark:text-white-theme-000 dark:bg-button-neutral-004 border-l-0 border border-black-theme-001 transition-all duration-500"
-            >
-              {isEnglish ? "Update" : "수정"}
-            </button>
-          </div>
-        </form>
+        <CommentForm onSubmit={handleCommentSubmit} isEnglish={isEnglish} />
       )}
     </div>
   );

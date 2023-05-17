@@ -7,6 +7,7 @@ module.exports = {
       spacing: {
         "88px": "88px",
         "92px": "92px",
+        "100px": "100px",
       },
       transitionProperty: {
         "height": "height",
@@ -31,6 +32,25 @@ module.exports = {
         "0": "0ms",
         "100": "100ms",
         "500": "500ms",
+      },
+      animation: {
+        sparkle: "sparkle 700ms linear infinite",
+      },
+      keyframes: {
+        sparkle: {
+          "0%": {
+            opacity: 1,
+            transform: "scale(1)",
+          },
+          "50%": {
+            opacity: 1,
+            transform: "scale(1.1)",
+          },
+          "100%": {
+            opacity: 1,
+            transform: "scale(1)",
+          },
+        },
       },
     },
     colors: {

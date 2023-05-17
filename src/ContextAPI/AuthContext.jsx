@@ -9,7 +9,18 @@ export const AuthContext = createContext();
 const auth = getAuth(app);
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState({
+    email: "",
+    displayName: "",
+    uid: "",
+    userId: "",
+    name: "",
+    birthday: "",
+    age: "",
+    introduction: "",
+    photoURL: "",
+    userIdUpdatedAt: "",
+  });
   const [loading, setLoading] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [token, setToken] = useState("");
@@ -37,6 +48,7 @@ export const AuthProvider = ({ children }) => {
       }
     });
   }, []);
+
   async function login(user) {
     try {
       setUser(user);
@@ -47,8 +59,8 @@ export const AuthProvider = ({ children }) => {
       if (userDoc.exists()) {
         const userData = userDoc.data();
         const message = isEnglish
-          ? `Welcome back! ${user.displayName || userData.userId}`
-          : `${user.displayName || userData.userId} 님 환영합니다`;
+          ? `Welcome back! ${userData.userId}`
+          : `${userData.userId} 님 환영합니다`;
         alert(message);
         setUserData(userDoc.data());
       } else {

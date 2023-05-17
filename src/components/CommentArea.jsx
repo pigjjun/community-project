@@ -137,19 +137,21 @@ export default function CommentArea({
           />
         ))}
       {/* 대댓글 작성 토글 버튼 */}
-      {userData && (
-        <button
-          className="text-sm px-1 py-1 mb-2 mr-1 border rounded-lg text-white-theme-007 dark:text-black-theme-002 transition-all duration-500"
-          onClick={() =>
-            setReplyOpen((prev) => ({
-              ...prev,
-              [comment.id]: !prev[comment.id],
-            }))
-          }
-        >
-          {isEnglish ? "Reply" : "답글달기"}
-        </button>
-      )}
+      <div className="flex justify-end">
+        {userData && (
+          <button
+            className="text-sm px-1 py-1 mb-2 mr-1 border rounded-lg text-white-theme-007 dark:text-black-theme-002 transition-all duration-500"
+            onClick={() =>
+              setReplyOpen((prev) => ({
+                ...prev,
+                [comment.id]: !prev[comment.id],
+              }))
+            }
+          >
+            {isEnglish ? "Reply" : "답글달기"}
+          </button>
+        )}
+      </div>
 
       {/* 대댓글 작성 폼 */}
       {replyOpen[comment.id] && (

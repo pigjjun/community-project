@@ -4,7 +4,7 @@ import React from "react";
 function ReplyForm({ commentId, handleReplySubmit, isEnglish }) {
   return (
     <form onSubmit={(e) => handleReplySubmit(e, commentId)}>
-      <div className="flex">
+      <div className="flex mb-2">
         <textarea
           name="content"
           className="w-full px-2 py-1 rounded-l-lg text-black-theme-005 border-r-0 border border-black-theme-001"

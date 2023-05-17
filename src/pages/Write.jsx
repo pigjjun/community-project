@@ -7,7 +7,18 @@ import { collection, addDoc } from "firebase/firestore";
 import { AuthContext } from "../ContextAPI/AuthContext";
 import { LanguageContext } from "../ContextAPI/LanguageContext";
 
-const categories = ["news", "tech", "sports"];
+const categories = [
+  "notice",
+  "freetalk",
+  "news",
+  "tech",
+  "sports",
+  "game",
+  "media",
+  "cook",
+  "daily",
+  "fashion",
+];
 
 export default function Write() {
   const { register, handleSubmit, formState, reset } = useForm({

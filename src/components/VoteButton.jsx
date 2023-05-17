@@ -17,7 +17,7 @@ export default function VoteButtons({ post, isEnglish, handleVoteUpdate }) {
         const userVoteRef = doc(db, "posts", id, "votes", user.uid);
         const userVoteSnap = await getDoc(userVoteRef);
         if (userVoteSnap.exists()) {
-          setUserVote(userVoteSnap.data().vote);
+          userVote = userVoteSnap.data().vote;
         }
       } else {
         // 로그인하지 않은 유저

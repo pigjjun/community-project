@@ -33,18 +33,21 @@ function Login() {
 
       // Check if user document exists
       const userDoc = await getDoc(userRef);
-
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        // set your global state with userData
+        // ...
+      }
       // If user document doesn't exist, create a new one
       if (!userDoc.exists()) {
         await setDoc(userRef, {
-          name: user.displayName,
+          userId: user.displayName,
           email: user.email,
-        });
-      } else {
-        // Update existing user document with new data
-        await updateDoc(userRef, {
-          name: user.displayName,
-          email: user.email,
+          name: "",
+          birthday: "",
+          age: "",
+          introduction: "",
+          photoURL: "",
         });
       }
 

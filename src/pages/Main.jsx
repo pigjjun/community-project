@@ -111,6 +111,30 @@ export default function Main() {
             <button
               type="button"
               className={`block mb-2 py-2 px-4 rounded-lg ${
+                category === "notice"
+                  ? "bg-white-theme-007 text-white-theme-001 dark:bg-black-theme-003 dark:text-white-theme-002 font-bold  transition-all duration-500"
+                  : "bg-white-theme-003 text-black-theme-003 dark:bg-black-theme-001 dark:text-white-theme-001 font-bold hover:bg-white-theme-006 dark:hover:bg-black-theme-002 transition-all duration-500"
+              }`}
+              onClick={() => handleCategoryClick("notice")}
+            >
+              {}
+              {isEnglish ? "Notice" : "공지"}
+            </button>
+            <button
+              type="button"
+              className={`block mb-2 py-2 px-4 rounded-lg ${
+                category === "freetalk"
+                  ? "bg-white-theme-007 text-white-theme-001 dark:bg-black-theme-003 dark:text-white-theme-002 font-bold  transition-all duration-500"
+                  : "bg-white-theme-003 text-black-theme-003 dark:bg-black-theme-001 dark:text-white-theme-001 font-bold hover:bg-white-theme-006 dark:hover:bg-black-theme-002 transition-all duration-500"
+              }`}
+              onClick={() => handleCategoryClick("freetalk")}
+            >
+              {}
+              {isEnglish ? "Free talk" : "자유주제"}
+            </button>
+            <button
+              type="button"
+              className={`block mb-2 py-2 px-4 rounded-lg ${
                 category === "news"
                   ? "bg-white-theme-007 text-white-theme-001 dark:bg-black-theme-003 dark:text-white-theme-002 font-bold  transition-all duration-500"
                   : "bg-white-theme-003 text-black-theme-003 dark:bg-black-theme-001 dark:text-white-theme-001 font-bold hover:bg-white-theme-006 dark:hover:bg-black-theme-002 transition-all duration-500"
@@ -145,13 +169,57 @@ export default function Main() {
             <button
               type="button"
               className={`block mb-2 py-2 px-4 rounded-lg ${
-                category === "freetalk"
+                category === "game"
                   ? "bg-white-theme-007 text-white-theme-001 dark:bg-black-theme-003 dark:text-white-theme-002 font-bold  transition-all duration-500"
                   : "bg-white-theme-003 text-black-theme-003 dark:bg-black-theme-001 dark:text-white-theme-001 font-bold hover:bg-white-theme-006 dark:hover:bg-black-theme-002 transition-all duration-500"
               }`}
-              onClick={() => handleCategoryClick("freetalk")}
+              onClick={() => handleCategoryClick("game")}
             >
-              {isEnglish ? "Free Talk" : "자유주제"}
+              {isEnglish ? "Game" : "게임"}
+            </button>
+            <button
+              type="button"
+              className={`block mb-2 py-2 px-4 rounded-lg ${
+                category === "media"
+                  ? "bg-white-theme-007 text-white-theme-001 dark:bg-black-theme-003 dark:text-white-theme-002 font-bold  transition-all duration-500"
+                  : "bg-white-theme-003 text-black-theme-003 dark:bg-black-theme-001 dark:text-white-theme-001 font-bold hover:bg-white-theme-006 dark:hover:bg-black-theme-002 transition-all duration-500"
+              }`}
+              onClick={() => handleCategoryClick("media")}
+            >
+              {isEnglish ? "Media" : "미디어"}
+            </button>
+            <button
+              type="button"
+              className={`block mb-2 py-2 px-4 rounded-lg ${
+                category === "cook"
+                  ? "bg-white-theme-007 text-white-theme-001 dark:bg-black-theme-003 dark:text-white-theme-002 font-bold  transition-all duration-500"
+                  : "bg-white-theme-003 text-black-theme-003 dark:bg-black-theme-001 dark:text-white-theme-001 font-bold hover:bg-white-theme-006 dark:hover:bg-black-theme-002 transition-all duration-500"
+              }`}
+              onClick={() => handleCategoryClick("cook")}
+            >
+              {isEnglish ? "Cook" : "요리"}
+            </button>
+            <button
+              type="button"
+              className={`block mb-2 py-2 px-4 rounded-lg ${
+                category === "daily"
+                  ? "bg-white-theme-007 text-white-theme-001 dark:bg-black-theme-003 dark:text-white-theme-002 font-bold  transition-all duration-500"
+                  : "bg-white-theme-003 text-black-theme-003 dark:bg-black-theme-001 dark:text-white-theme-001 font-bold hover:bg-white-theme-006 dark:hover:bg-black-theme-002 transition-all duration-500"
+              }`}
+              onClick={() => handleCategoryClick("daily")}
+            >
+              {isEnglish ? "Daily" : "일상"}
+            </button>
+            <button
+              type="button"
+              className={`block mb-2 py-2 px-4 rounded-lg ${
+                category === "fashion"
+                  ? "bg-white-theme-007 text-white-theme-001 dark:bg-black-theme-003 dark:text-white-theme-002 font-bold  transition-all duration-500"
+                  : "bg-white-theme-003 text-black-theme-003 dark:bg-black-theme-001 dark:text-white-theme-001 font-bold hover:bg-white-theme-006 dark:hover:bg-black-theme-002 transition-all duration-500"
+              }`}
+              onClick={() => handleCategoryClick("fashion")}
+            >
+              {isEnglish ? "Fashion" : "패션"}
             </button>
           </div>
         </div>

@@ -178,36 +178,32 @@ export default function UserProfileEdit() {
     // Process each post
     await Promise.all(
       postsQuerySnapshot.docs.map(async (postDoc) => {
-        // Update createdByUserId for each post
+        // Update createdByUserId for each post if it matches the oldUserId
         if (postDoc.data().createdByUserId === oldUserId) {
           await updateDoc(postDoc.ref, { createdByUserId: newUserId });
         }
 
         // Get all comments of the post
         const commentsRef = collection(postDoc.ref, "comments");
-        const commentsQuery = query(
-          commentsRef,
-          where("createdBy", "==", oldUserId)
-        );
-        const commentsQuerySnapshot = await getDocs(commentsQuery);
+        const commentsQuerySnapshot = await getDocs(commentsRef);
 
-        // Find and update comments where createdBy matches the old user ID
+        // Update createdBy for each comment if it matches the oldUserId
         await Promise.all(
           commentsQuerySnapshot.docs.map(async (commentDoc) => {
-            await updateDoc(commentDoc.ref, { createdBy: newUserId });
+            if (commentDoc.data().createdBy === oldUserId) {
+              await updateDoc(commentDoc.ref, { createdBy: newUserId });
+            }
 
             // Get all replies of the comment
             const repliesRef = collection(commentDoc.ref, "replies");
-            const repliesQuery = query(
-              repliesRef,
-              where("createdBy", "==", oldUserId)
-            );
-            const repliesQuerySnapshot = await getDocs(repliesQuery);
+            const repliesQuerySnapshot = await getDocs(repliesRef);
 
-            // Find and update replies where createdBy matches the old user ID
+            // Update createdBy for each reply if it matches the oldUserId
             await Promise.all(
               repliesQuerySnapshot.docs.map(async (replyDoc) => {
-                await updateDoc(replyDoc.ref, { createdBy: newUserId });
+                if (replyDoc.data().createdBy === oldUserId) {
+                  await updateDoc(replyDoc.ref, { createdBy: newUserId });
+                }
               })
             );
           })

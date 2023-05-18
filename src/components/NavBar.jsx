@@ -18,6 +18,10 @@ export default function NavBar() {
   const [isHovered, setIsHovered] = useState(false);
   const hoverTimeoutId = useRef(null);
 
+  useEffect(() => {
+    setIsHovered(false);
+  }, [isLoggedIn]);
+
   const handleMouseEnter = () => {
     clearTimeout(hoverTimeoutId.current);
     setIsHovered(true);

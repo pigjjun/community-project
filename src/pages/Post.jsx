@@ -310,7 +310,7 @@ export default function Post() {
   }
 
   return (
-    <div className="px-4 pb-4 pt-100px min-h-screen bg-white-theme-001 text-black-theme-004 dark:bg-black-theme-004 dark:text-white-theme-002 transition-all duration-500">
+    <div className="px-4 pb-4 lg:px-28 xl:px-64 2xl:px-72 pt-100px min-h-screen bg-white-theme-001 text-black-theme-004 dark:bg-black-theme-004 dark:text-white-theme-002 transition-all duration-500">
       {/* 삭제버튼(작성자일때) */}
       <div className="text-sm text-right">
         <DeletePostButton

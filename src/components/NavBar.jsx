@@ -78,7 +78,7 @@ export default function NavBar() {
   }, []);
 
   return (
-    <nav className={`z-50 ${navClass}`}>
+    <nav className={`z-50 xl:px-72 2xl:px-80 ${navClass}`}>
       {/* Logo */}
       <Link to="/">
         <div className="mx-4 hover:scale-105 transition-all duration-250">
@@ -135,7 +135,9 @@ export default function NavBar() {
             {
               <div
                 className={`flex flex-col top-10 items-center absolute px-4 mt-8 mr-4 bg-white-theme-001 dark:bg-black-theme-001 rounded-lg shadow-md transition-all duration-250 transform ${
-                  isHovered ? "opacity-100 right-2" : "opacity-0 -right-40"
+                  isHovered
+                    ? "opacity-100 right-2 xl:right-48 2xl:right-56"
+                    : "opacity-0 -right-40"
                 }`}
               >
                 <Link to={`/user/profile/${userData?.userId}`}>

@@ -58,7 +58,7 @@ export default function Main() {
   // Top3 포스트 끝 //
 
   return (
-    <div className="flex flex-col pt-100px min-h-screen bg-white-theme-001 text-black-theme-004 dark:bg-black-theme-004 dark:text-white-theme-002 transition-all duration-500">
+    <div className="flex flex-col xl:px-64 2xl:px-72 pt-100px min-h-screen bg-white-theme-001 text-black-theme-004 dark:bg-black-theme-004 dark:text-white-theme-002 transition-all duration-500">
       {/* 인기글/최신글 */}
       <div className="flex min-w-max py-4 px-4 ml-32 justify-between content-center">
         <div className="flex justify-center">
